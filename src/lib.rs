@@ -81,15 +81,18 @@ fn levenshtein_exp(a: Vec<&str>, b: Vec<&str>) -> PyResult<usize> {
         previous_row = i +1;
         let mut previous_above = i;
         for (j, c_b) in b.iter().enumerate() {
-            cost = if c_a == c_b { 0 } else { 1 };
             previous_diagonal = previous_above;
             previous_above = row[j];
-            previous_row = std::cmp::min(previous_diagonal+cost, // Substitution 
-                std::cmp::min(
-                    previous_above+1, // Deletion
-                    previous_row+1 // Insertion
-                )
-            );
+            if c_a == c_b {
+                previous_row = previous_diagonal;
+            } else {
+                previous_row = std::cmp::min(previous_diagonal+1, // Substitution 
+                    std::cmp::min(
+                        previous_above+1, // Deletion
+                        previous_row+1 // Insertion
+                    )
+                );
+            }
             row[j] = previous_row;
         }
     } 
