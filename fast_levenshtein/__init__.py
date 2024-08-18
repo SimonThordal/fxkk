@@ -8,5 +8,5 @@ from ._levenshtein import (
 from fast_levenshtein.fast_levenshtein import (
     levenshtein_mat as levenshtein_mat_rs,
     levenshtein_vec as levenshtein_vec_rs,
-    levenshtein_exp as levenshtein_exp_rs,
+    levenshtein_tweaked as levenshtein_tweaked_rs,
 )

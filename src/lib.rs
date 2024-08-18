@@ -71,31 +71,16 @@ fn levenshtein_vec(a: &str, b: &str) -> PyResult<usize> {
     Ok(v_1[l_b - 1])
 }
 
-#[pyfunction]
-fn levenshtein_exp(a: &str, b: &str) -> PyResult<usize> {
-    if a.len() > b.len() {
-        return levenshtein_exp(b, a);
-    }
-    if a.len() == 0 {
-        return Ok(b.len());
-    }
-    if b.len() == 0 {
-        return Ok(a.len());
-    }
-    if a == b {
-        return Ok(0)
-    }
-    
-    let l_b: usize = b.len() + 1;
-    
-    let mut row: Vec<usize> = (1..l_b).collect();
+#[inline(always)]
+fn levenshtein_exp(a: Vec<&str>, b: Vec<&str>) -> PyResult<usize> {
+    let mut row: Vec<usize> = (1..b.len()+1).collect();
     let mut previous_diagonal: usize;
     let mut cost: usize;
     let mut previous_row: usize = 0;
-    for (i, c_a) in a.chars().enumerate() {
+    for (i, c_a) in a.iter().enumerate() {
         previous_row = i +1;
         let mut previous_above = i;
-        for (j, c_b) in b.chars().enumerate() {
+        for (j, c_b) in b.iter().enumerate() {
             cost = if c_a == c_b { 0 } else { 1 };
             previous_diagonal = previous_above;
             previous_above = row[j];
@@ -109,55 +94,71 @@ fn levenshtein_exp(a: &str, b: &str) -> PyResult<usize> {
         }
     } 
 
-    Ok(previous_row)
-    
+    Ok(previous_row)   
+}
+
+/// Find the length of a common prefix of two strings
+fn mismatch(a: &[&str], b: &[&str]) -> usize {
+    let mut i = 0;
+    for (c_a, c_b) in a.iter().zip(b.iter()) {
+        if c_a != c_b {
+            break;
+        }
+        i += 1;
+    }
+    i
 }
 
 #[pyfunction]
-pub fn levenshtein_exp_theirs(a: &str, b: &str) -> PyResult<usize>
-{
-    if a.len() > b.len() {
-        return levenshtein_exp(b, a);
+fn levenshtein_tweaked(a: &str, b: &str) -> PyResult<usize> {
+    if b.len() > a.len() {
+        return levenshtein_tweaked(b, a);
     }
     if a.len() == 0 {
         return Ok(b.len());
     }
     if b.len() == 0 {
         return Ok(a.len());
+        
     }
     if a == b {
         return Ok(0)
     }
-
-    let b_len = b.chars().count();
-
-    let mut cache: Vec<usize> = (1..b_len + 1).collect();
-
-    let mut result = b_len;
-
-    for (i, a_elem) in a.chars().enumerate() {
-        result = i + 1;
-        let mut distance_b = i;
-
-        for (j, b_elem) in b.chars().enumerate() {
-            let cost = usize::from(a_elem != b_elem);
-            let distance_a = distance_b + cost;
-            distance_b = cache[j];
-            result = std::cmp::min(result + 1, std::cmp::min(distance_a, distance_b + 1));
-            cache[j] = result;
-        }
-    }
-
-    Ok(result)
+    let mut source: Vec<&str> = UnicodeSegmentation::graphemes(a, true).collect::<Vec<&str>>();
+    let mut target: Vec<&str> = UnicodeSegmentation::graphemes(b, true).collect::<Vec<&str>>();
+    let prefix_len = mismatch(&source, &target);
+    source.drain(0..prefix_len);
+    target.drain(0..prefix_len);
+    source.reverse();
+    target.reverse();
+    let suffix_len = mismatch(&source, &target);
+    source.drain(0..suffix_len);
+    target.drain(0..suffix_len);
+    levenshtein_exp(source, target)
 }
+
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn fast_levenshtein(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(levenshtein_mat, m)?)?;
     m.add_function(wrap_pyfunction!(levenshtein_vec, m)?)?;
-    m.add_function(wrap_pyfunction!(levenshtein_exp, m)?)?;
+    m.add_function(wrap_pyfunction!(levenshtein_tweaked, m)?)?;
     Ok(())
 }
 
 
+
+
+#[cfg(test)]
+mod tests {
+
+	#[test]
+	fn test_tweaked() {
+        let a = "kitten";
+        let b = "sitting";
+        assert_eq!(super::levenshtein_tweaked(a, b).unwrap(), 3);
+	}
+}
+
+	

@@ -6,7 +6,7 @@ from fast_levenshtein import (
     levenshtein_cy,
     levenshtein_mat_rs,
     levenshtein_vec_rs,
-    levenshtein_exp_rs,
+    levenshtein_tweaked_rs,
 )
 from jellyfish import levenshtein_distance as jellyfish_compiled
 from typing import Any
@@ -37,10 +37,10 @@ def test_levenshtein_vec_rs_performance(benchmark: Any) -> None:
     benchmark(profile_levenshtein)
 
 
-def test_levensthein_exp_rs_performance(benchmark: Any) -> None:
+def test_levenshtein_tweaked_rs_performance(benchmark: Any) -> None:
     def profile_levenshtein() -> None:
         for a, b in cases:
-            levenshtein_exp_rs(a, b)
+            levenshtein_tweaked_rs(a, b)
 
     benchmark(profile_levenshtein)
 
