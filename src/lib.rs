@@ -78,7 +78,7 @@ fn levenshtein_exp(a: Vec<&str>, b: Vec<&str>) -> PyResult<usize> {
     let mut cost: usize;
     let mut previous_row: usize = 0;
     for (i, c_a) in a.iter().enumerate() {
-        previous_row = i +1;
+        previous_row = i + 1;
         let mut previous_above = i;
         for (j, c_b) in b.iter().enumerate() {
             cost = if c_a == c_b { 0 } else { 1 };
@@ -98,7 +98,7 @@ fn levenshtein_exp(a: Vec<&str>, b: Vec<&str>) -> PyResult<usize> {
 }
 
 /// Find the length of a common prefix of two strings
-fn mismatch(a: &[&str], b: &[&str]) -> usize {
+fn mismatch(a: &Vec<&str>, b: &Vec<&str>) -> usize {
     let mut i = 0;
     for (c_a, c_b) in a.iter().zip(b.iter()) {
         if c_a != c_b {
@@ -114,18 +114,25 @@ fn levenshtein_tweaked(a: &str, b: &str) -> PyResult<usize> {
     if b.len() > a.len() {
         return levenshtein_tweaked(b, a);
     }
-    if a.len() == 0 {
+    if a.is_empty() {
         return Ok(b.len());
     }
-    if b.len() == 0 {
+    if b.is_empty() {
         return Ok(a.len());
         
     }
     if a == b {
         return Ok(0)
     }
-    let mut source: Vec<&str> = UnicodeSegmentation::graphemes(a, true).collect::<Vec<&str>>();
-    let mut target: Vec<&str> = UnicodeSegmentation::graphemes(b, true).collect::<Vec<&str>>();
+    let mut source: Vec<&str>;
+    let mut target: Vec<&str>;
+    if !a.is_ascii() || !b.is_ascii() {
+        source = UnicodeSegmentation::graphemes(a, true).collect::<Vec<&str>>();
+        target = UnicodeSegmentation::graphemes(b, true).collect::<Vec<&str>>();
+    } else {
+        source = a.split("").collect::<Vec<&str>>();
+        target= b.split("").collect::<Vec<&str>>();
+    }
     let prefix_len = mismatch(&source, &target);
     source.drain(0..prefix_len);
     target.drain(0..prefix_len);
