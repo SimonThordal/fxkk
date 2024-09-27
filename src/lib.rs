@@ -2,77 +2,9 @@ use std::vec;
 
 use pyo3::prelude::*;
 use unicode_segmentation::UnicodeSegmentation;
-use smallvec::{SmallVec, smallvec};
-
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn levenshtein_mat(a: &str, b: &str) -> PyResult<usize> {
-    if a == b {
-        return Ok(0)
-    }
-    let a = UnicodeSegmentation::graphemes(a, true).collect::<Vec<&str>>();
-    let b = UnicodeSegmentation::graphemes(b, true).collect::<Vec<&str>>();
-    let l_a: usize = a.len() + 1;
-    let l_b: usize = b.len() + 1;
-    let mut D: Vec<Vec<usize>> = vec![];
-    for _ in 0..l_a {
-        D.push(vec![0; l_b])
-    }
-    for i in 1..l_a {
-        D[i][0] = i;
-    }
-    for j in 1..l_b {
-        D[0][j] = j;
-    }
-    let mut cost: usize;
-    for i in 1..l_a {
-        let a_i = a[i -1];
-        for j in 1..l_b {
-            let b_j = b[j - 1];
-            cost = if a_i == b_j { 0 } else { 1 };
-            D[i][j] = std::cmp::min(
-                D[i - 1][j] + 1,
-                std::cmp::min(
-                    D[i][j - 1] + 1, 
-                    D[i - 1][j - 1] + cost
-                ),
-            );
-        }
-    }
-    Ok(D[l_a - 1][l_b - 1])
-}
-
-#[pyfunction]
-fn levenshtein_vec(a: &str, b: &str) -> PyResult<usize> {
-    if a == b {
-        return Ok(0)
-    }
-    let a: Vec<&str> = UnicodeSegmentation::graphemes(a, true).collect::<Vec<&str>>();
-    let b: Vec<&str> = UnicodeSegmentation::graphemes(b, true).collect::<Vec<&str>>();
-    let l_a: usize = a.len() + 1;
-    let l_b: usize = b.len() + 1;
-    let mut v_0: Vec<usize> = vec![0; l_b];
-    let mut v_1: Vec<usize> = (0..l_b).collect();
-    for i in 1..l_a {
-        v_0 = v_1;
-        v_1 =vec![0; l_b];
-        v_1[0] = i;
-        for j in 1..l_b {
-            let cost: usize = if a[i - 1] == b[j - 1] { 0 } else { 1 };
-            v_1[j] = std::cmp::min(
-                v_0[j] + 1,
-                std::cmp::min(
-                    v_1[j - 1] + 1,
-                    v_0[j - 1] + cost
-                )
-            );
-        }
-    }
-    Ok(v_1[l_b - 1])
-}
 
 #[inline(always)]
-fn levenshtein_exp(a: Vec<&str>, b: Vec<&str>) -> PyResult<usize> {
+fn _levenshtein(a: &[&str], b: &[&str]) -> PyResult<usize> {
     let mut row: Vec<usize> = (1..b.len()+1).collect();
     let mut previous_diagonal: usize;
     let mut cost: usize;
@@ -98,7 +30,7 @@ fn levenshtein_exp(a: Vec<&str>, b: Vec<&str>) -> PyResult<usize> {
 }
 
 /// Find the length of a common prefix of two strings
-fn mismatch(a: &Vec<&str>, b: &Vec<&str>) -> usize {
+fn mismatch(a: &[&str], b: &[&str]) -> usize {
     let mut i = 0;
     for (c_a, c_b) in a.iter().zip(b.iter()) {
         if c_a != c_b {
@@ -110,9 +42,9 @@ fn mismatch(a: &Vec<&str>, b: &Vec<&str>) -> usize {
 }
 
 #[pyfunction]
-fn levenshtein_tweaked(a: &str, b: &str) -> PyResult<usize> {
+fn levenshtein(a: &str, b: &str) -> PyResult<usize> {
     if b.len() > a.len() {
-        return levenshtein_tweaked(b, a);
+        return levenshtein(b, a);
     }
     if a.is_empty() {
         return Ok(b.len());
@@ -141,16 +73,14 @@ fn levenshtein_tweaked(a: &str, b: &str) -> PyResult<usize> {
     let suffix_len = mismatch(&source, &target);
     source.drain(0..suffix_len);
     target.drain(0..suffix_len);
-    levenshtein_exp(source, target)
+    _levenshtein(&source, &target)
 }
 
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn fast_levenshtein(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(levenshtein_mat, m)?)?;
-    m.add_function(wrap_pyfunction!(levenshtein_vec, m)?)?;
-    m.add_function(wrap_pyfunction!(levenshtein_tweaked, m)?)?;
+fn fxkk(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(levenshtein, m)?)?;
     Ok(())
 }
 
@@ -164,7 +94,7 @@ mod tests {
 	fn test_tweaked() {
         let a = "kitten";
         let b = "sitting";
-        assert_eq!(super::levenshtein_tweaked(a, b).unwrap(), 3);
+        assert_eq!(super::levenshtein(a, b).unwrap(), 3);
 	}
 }
 

@@ -1,13 +1,4 @@
-from fast_levenshtein import (
-    levenshtein_mat_py,
-    levenshtein_vec_py,
-    levenshtein_exp_py,
-    jellyfish_levenshtein as jellyfish_raw,
-    levenshtein_cy,
-    levenshtein_mat_rs,
-    levenshtein_vec_rs,
-    levenshtein_tweaked_rs,
-)
+from fxkk import levenshtein
 from jellyfish import levenshtein_distance as jellyfish_compiled
 from typing import Any
 import random
@@ -27,10 +18,10 @@ cases_shared = [
 ]
 
 
-def test_levenshtein_tweaked_rs_performance_shared_fixes(benchmark: Any) -> None:
+def test_levenshtein_performance_shared_fixes(benchmark: Any) -> None:
     def profile_levenshtein() -> None:
         for a, b in cases_shared:
-            levenshtein_tweaked_rs(a, b)
+            levenshtein(a, b)
 
     benchmark(profile_levenshtein)
 
