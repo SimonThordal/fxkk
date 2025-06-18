@@ -1,4 +1,3 @@
-use std::vec;
 
 use pyo3::prelude::*;
 use unicode_segmentation::UnicodeSegmentation;
